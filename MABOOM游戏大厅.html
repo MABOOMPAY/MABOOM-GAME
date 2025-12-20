@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MABOOM 游戏中心</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  <style>
+    body { margin: 0; padding: 10px; font-family: Arial; text-align: center; color: white; background: #120136; }
+    h1 { font-size: 32px; margin: 20px; }
+    .tab-button { display: block; width: 90%; margin: 20px auto; padding: 20px; font-size: 24px; background: #FFD700; color: #000; border-radius: 15px; cursor: pointer; }
+    .game-section { display: none; min-height: 100vh; padding: 20px; }
+    .active { display: block; }
+    .back-btn { background: #333; position: fixed; top: 10px; left: 10px; z-index: 999; padding: 10px; border-radius: 10px; cursor: pointer; }
+    button { padding: 12px 25px; margin: 10px; font-size: 18px; background: #e94560; border: none; border-radius: 10px; color: white; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>🎮 MABOOM 游戏中心</h1>
+  <p>选择游戏开始玩，赚马币领$MABOOM空投！</p>
+
+  <div class="tab-button" onclick="openGame('click')">🐎 点击独角兽</div>
+  <div class="tab-button" onclick="openGame('poker')">♠️ Poker王者</div>
+  <div class="tab-button" onclick="openGame('casino')">🎰 赌场老虎机百家乐</div>
+  <div class="tab-button" onclick="openGame('runner')">🐎 马了个马跑酷</div>
+  <div class="tab-button" onclick="openGame('farm')">🌾 农场谷</div>
+
+  <!-- 点击独角兽游戏 -->
+  <div id="click" class="game-section">
+    <button class="back-btn" onclick="openGame('home')">返回大厅</button>
+    <style>
+      #click { background: linear-gradient(#228B22, #006400); }
+      #click_horse { font-size: 150px; cursor: pointer; transition: transform 0.1s; user-select: none; }
+      #click_horse:active { transform: scale(0.9); }
+      #click_score { font-size: 40px; margin: 20px; }
+      #click button { background: #FF4500; }
+    </style>
+    <h1>🐎 MABOOM 马年冲刺 2026 💥</h1>
+    <p>狂点神马积累马力，换$MABOOM空投！</p>
+    <img id="click_horse" src="https://i.imgur.com/hmUAPzg.jpeg" onclick="click_clickHorse()" style="width:380px; cursor:pointer;">
+    <div id="click_score">马力能量: 0</div>
+    <button onclick="click_connectWallet()">连接TON钱包</button>
+    <button onclick="click_useMaboom()">用$MABOOM加速 x3</button>
+    <button onclick="click_claimReward()">领取MABOOM奖励</button>
+    <script>
+      let click_score = 0;
+      let click_multiplier = 1;
+      const click_tonConnectUI = new TONConnectUI({
+        manifestUrl: 'https://ton-connect.github.io/demo-dapp-with-react/manifest.json'
+      });
+      function click_clickHorse() {
+        click_score += 1 * click_multiplier;
+        document.getElementById('click_score').innerText = '马力能量: ' + click_score;
+        Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
+      }
+      async function click_connectWallet() {
+        try {
+          await click_tonConnectUI.connectWallet();
+          alert('TON钱包连接成功！准备冲刺🐎');
+        } catch(e) {
+          alert('连接取消或出错，再试一次');
+        }
+      }
+      function click_useMaboom() {
+        click_multiplier = 3;
+        setTimeout(() => { click_multiplier = 1; alert('MABOOM加速结束，继续冲！'); }, 60000);
+        alert('MABOOM马力注入！接下来60秒三倍能量🔥💨');
+      }
+      function click_claimReward() {
+        if (click_score >= 10000) {
+          click_score -= 10000;
+          document.getElementById('click_score').innerText = '马力能量: ' + click_score;
+          alert('🎉 冲刺成功！已触发MABOOM空投！\n请加入官方群提交钱包地址领取💰');
+        } else {
+          alert('还需要 ' + (10000 - click_score) + ' 马力才能领奖励！继续点神马🐎');
+        }
+      }
+    </script>
+  </div>
+
+  <!-- Poker王者 -->
+  <div id="poker" class="game-section">
+    <button class="back-btn" onclick="openGame('home')">返回大厅</button>
+    <style>
+      #poker { background: #1a1a2e; }
+      #poker .card { display: inline-block; width: 60px; height: 80px; background: #fff; border: 2px solid #000; border-radius: 5px; margin: 2px; font-size: 20px; line-height: 80px; }
+      #poker .hand { margin: 10px; }
+      #poker_score { font-size: 28px; margin: 15px; }
+      #poker button { background: #e94560; }
+    </style>
+    <h1>♠️ MABOOM Poker王者</h1>
+    <div id="poker_score">币: 1000</div>
+    <div id="poker_game">
+      <div id="poker_player-hand" class="hand">你的手牌: </div>
+      <div id="poker_community">公共牌: </div>
+      <div id="poker_ai-hand" class="hand">AI手牌: [隐藏]</div>
+      <button onclick="poker_startGame()">新游戏</button>
+      <button onclick="poker_betAndDeal()">下注&发牌</button>
+      <button onclick="poker_revealAndScore()">揭牌&结算</button>
+      <button onclick="poker_submitScore()">提交分数上排行榜</button>
+    </div>
+    <div id="poker_leaderboard"></div>
+    <script>
+      let poker_coins = parseInt(localStorage.getItem('maboomPokerCoins') || '1000');
+      let poker_playerHand = [];
+      let poker_aiHand = [];
+      let poker_communityCards = [];
+      let poker_suits = ['♠️', '♥️', '♦️', '♣️'];
+      let poker_ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+      document.getElementById('poker_score').innerText = '币: ' + poker_coins;
+
+      function poker_evaluateHand(hand) {
+        hand.sort((a, b) => poker_ranks.indexOf(a.rank) - poker_ranks.indexOf(b.rank));
+        let sameSuit = hand.every(card => card.suit === hand[0].suit);
+        let straight = hand.length === 5 && hand.every((card, i) => i === 0 || poker_ranks.indexOf(card.rank) === poker_ranks.indexOf(hand[i-1].rank) + 1);
+        if (sameSuit && straight) return 9;
+        let counts = {};
+        hand.forEach(card => counts[card.rank] = (counts[card.rank] || 0) + 1);
+        if (Object.values(counts).includes(4)) return 8;
+        if (Object.values(counts).includes(3) && Object.values(counts).includes(2)) return 7;
+        if (sameSuit) return 6;
+        if (straight) return 5;
+        if (Object.values(counts).includes(3)) return 4;
+        if (Object.values(counts).filter(c => c === 2).length === 2) return 3;
+        if (Object.values(counts).includes(2)) return 2;
+        return 1;
+      }
+
+      function poker_dealCard() {
+        let suit = poker_suits[Math.floor(Math.random() * 4)];
+        let rank = poker_ranks[Math.floor(Math.random() * 13)];
+        return { suit, rank };
+      }
+
+      function poker_startGame() {
+        poker_coins = 1000;
+        poker_playerHand = [poker_dealCard(), poker_dealCard()];
+        poker_aiHand = [poker_dealCard(), poker_dealCard()];
+        poker_communityCards = [];
+        poker_updateDisplay();
+        document.getElementById('poker_score').innerText = '币: ' + poker_coins;
+      }
+
+      function poker_betAndDeal() {
+        if (poker_coins < 100) { alert('币不够！'); return; }
+        poker_coins -= 100;
+        poker_communityCards = [poker_dealCard(), poker_dealCard(), poker_dealCard()];
+        poker_updateDisplay();
+        document.getElementById('poker_score').innerText = '币: ' + poker_coins;
+      }
+
+      function poker_revealAndScore() {
+        poker_communityCards.push(poker_dealCard(), poker_dealCard());
+        let playerFull = [...poker_playerHand, ...poker_communityCards];
+        let aiFull = [...poker_aiHand, ...poker_communityCards];
+        let playerScore = poker_evaluateHand(playerFull.slice(0,5));
+        let aiScore = poker_evaluateHand(aiFull.slice(0,5));
+        let win = playerScore > aiScore ? 1 : (playerScore < aiScore ? -1 : 0);
+        if (win > 0) { poker_coins += 300; alert('赢了！+300币'); }
+        else if (win < 0) { alert('输了！-100币'); poker_coins -= 100; }
+        else { poker_coins += 100; alert('平局！+100币'); }
+        poker_updateDisplay(true);
+        document.getElementById('poker_score').innerText = '币: ' + poker_coins;
+      }
+
+      function poker_updateDisplay(revealAI = false) {
+        let playerHtml = poker_playerHand.map(c => `<span class="card">${c.rank}${c.suit}</span>`).join('');
+        document.getElementById('poker_player-hand').innerHTML = '你的手牌: ' + playerHtml;
+        let communityHtml = poker_communityCards.map(c => `<span class="card">${c.rank}${c.suit}</span>`).join('');
+        document.getElementById('poker_community').innerHTML = '公共牌: ' + communityHtml;
+        let aiHtml = revealAI ? poker_aiHand.map(c => `<span class="card">${c.rank}${c.suit}</span>`).join('') : '[隐藏]';
+        document.getElementById('poker_ai-hand').innerHTML = 'AI手牌: ' + aiHtml;
+      }
+
+      function poker_submitScore() {
+        const name = prompt('输入名字上排行榜: ', '玩家');
+        if (name && poker_coins > 0) {
+          let lb = JSON.parse(localStorage.getItem('maboomPokerLB') || '[]');
+          lb.push({ name, coins: poker_coins });
+          lb.sort((a, b) => b.coins - a.coins);
+          lb = lb.slice(0, 10);
+          localStorage.setItem('maboomPokerLB', JSON.stringify(lb));
+          alert('提交成功！你的币: ' + poker_coins);
+          poker_showLeaderboard();
+        }
+      }
+
+      function poker_showLeaderboard() {
+        const lb = JSON.parse(localStorage.getItem('maboomPokerLB') || '[]');
+        let html = '<h3>🏆 排行榜 (币数)</h3><table><tr><th>排名</th><th>玩家</th><th>币</th></tr>';
+        lb.forEach((item, i) => html += `<tr><td>${i+1}</td><td>${item.name}</td><td>${item.coins}</td></tr>`);
+        html += '</table>';
+        document.getElementById('poker_leaderboard').innerHTML = html;
+      }
+
+      poker_startGame();
+    </script>
+  </div>
+
+  <!-- 赌场老虎机百家乐 -->
+  <div id="casino" class="game-section">
+    <button class="back-btn" onclick="openGame('home')">返回大厅</button>
+    <style>
+      #casino { background: #120136; color: gold; }
+      #casino_coins { font-size: 30px; margin: 20px; }
+      #casino .game-section { margin: 30px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 15px; }
+      #casino #slotMachine { display: flex; justify-content: center; align-items: center; gap: 10px; }
+      #casino .reel { width: 100px; height: 100px; background: #fff; color: #000; font-size: 60px; line-height: 100px; border-radius: 10px; }
+      #casino button { padding: 15px 30px; margin: 10px; font-size: 20px; background: #FFD700; color: #000; border: none; border-radius: 10px; cursor: pointer; }
+      #casino .baccarat-btn { background: #32CD32; }
+      #casino .baccarat-btn.player { background: #1E90FF; }
+      #casino .baccarat-btn.tie { background: #FFA500; }
+    </style>
+    <h1>🎰 MABOOM 赌场王者</h1>
+    <p>老虎机转起来，百家乐下注赢大奖！赚币领$MABOOM空投！</p>
+    <div id="casino_coins">马币: 1000</div>
+
+    <!-- 老虎机 -->
+    <div class="game-section">
+      <h2>🎰 老虎机 (下注100币)</h2>
+      <div id="casino_slotMachine">
+        <div class="reel" id="casino_reel1">?</div>
+        <div class="reel" id="casino_reel2">?</div>
+        <div class="reel" id="casino_reel3">?</div>
+      </div>
+      <button onclick="casino_playSlot()">拉杆！(-100币)</button>
+    </div>
+
+    <!-- 百家乐 -->
+    <div class="game-section">
+      <h2>🃏 百家乐 (下注100币)</h2>
+      <p>玩家手牌: <span id="casino_playerCards">-</span></p>
+      <p>庄家手牌: <span id="casino_bankerCards">-</span></p>
+      <p id="casino_result"></p>
+      <button class="baccarat-btn player" onclick="casino_betBaccarat('player')">下注玩家 (赔率1:1)</button>
+      <button class="baccarat-btn" onclick="casino_betBaccarat('banker')">下注庄家 (赔率1:0.95)</button>
+      <button class="baccarat-btn tie" onclick="casino_betBaccarat('tie')">下注和 (赔率1:8)</button>
+    </div>
+
+    <button onclick="casino_showLeaderboard()">查看排行榜</button>
+    <div id="casino_leaderboard"></div>
+    <script>
+      let casino_coins = parseInt(localStorage.getItem('maboomCasinoCoins') || '1000');
+      document.getElementById('casino_coins').innerText = '马币: ' + casino_coins;
+      const casino_symbols = ['🍒', '🍋', '🍊', '7️⃣', '💎', '🃏', '🎰', '⭐'];
+
+      function casino_playSlot() {
+        if (casino_coins < 100) { alert('马币不足！'); return; }
+        casino_coins -= 100;
+        casino_updateCoins();
+        const reels = [document.getElementById('casino_reel1'), document.getElementById('casino_reel2'), document.getElementById('casino_reel3')];
+        reels.forEach(reel => reel.innerText = '🎰');
+        setTimeout(() => {
+          const result = [casino_getRandomSymbol(), casino_getRandomSymbol(), casino_getRandomSymbol()];
+          reels.forEach((reel, i) => reel.innerText = result[i]);
+          const win = casino_checkSlotWin(result);
+          if (win > 0) {
+            casino_coins += win;
+            alert(`恭喜中奖！+${win}马币`);
+          } else {
+            alert('未中奖，再来一次！');
+          }
+          casino_updateCoins();
+        }, 2000);
+      }
+
+      function casino_getRandomSymbol() {
+        return casino_symbols[Math.floor(Math.random() * casino_symbols.length)];
+      }
+
+      function casino_checkSlotWin(result) {
+        if (result[0] === result[1] && result[1] === result[2]) {
+          return result[0] === '7️⃣' ? 1000 : result[0] === '💎' ? 800 : 500;
+        }
+        return 0;
+      }
+
+      function casino_betBaccarat(betType) {
+        if (casino_coins < 100) { alert('马币不足！'); return; }
+        casino_coins -= 100;
+        casino_updateCoins();
+        casino_playerCards = [casino_dealCard(), casino_dealCard()];
+        casino_bankerCards = [casino_dealCard(), casino_dealCard()];
+        document.getElementById('casino_playerCards').innerText = casino_formatCards(casino_playerCards);
+        document.getElementById('casino_bankerCards').innerText = casino_formatCards(casino_bankerCards);
+        const winner = casino_determineBaccaratWinner();
+        let payout = 0;
+        if (betType === winner) {
+          payout = betType === 'player' ? 200 : betType === 'banker' ? 195 : 900;
+          casino_coins += payout;
+          alert(`你赢了！+${payout}马币`);
+        } else if (winner === 'tie' && betType === 'tie') {
+          casino_coins += 900;
+          alert('和局中奖！+900马币');
+        } else {
+          alert('输了，再接再厉！');
+        }
+        casino_updateCoins();
+      }
+
+      function casino_dealCard() {
+        const rank = Math.floor(Math.random() * 13) + 1;
+        return { value: rank > 10 ? 0 : rank, name: ['A','2','3','4','5','6','7','8','9','10','J','Q','K'][rank-1] };
+      }
+
+      function casino_formatCards(cards) {
+        return cards.map(c => c.name).join(' ');
+      }
+
+      function casino_determineBaccaratWinner() {
+        let playerTotal = (casino_playerCards[0].value + casino_playerCards[1].value) % 10;
+        let bankerTotal = (casino_bankerCards[0].value + casino_bankerCards[1].value) % 10;
+        if (playerTotal > bankerTotal) return 'player';
+        if (bankerTotal > playerTotal) return 'banker';
+        return 'tie';
+      }
+
+      function casino_updateCoins() {
+        document.getElementById('casino_coins').innerText = '马币: ' + casino_coins;
+        localStorage.setItem('maboomCasinoCoins', casino_coins);
+      }
+
+      function casino_showLeaderboard() {
+        let lb = JSON.parse(localStorage.getItem('maboomCasinoLB') || '[]');
+        lb.push({ name: prompt('上排行榜输入名字:', '赌王') || '匿名', coins: casino_coins });
+        lb.sort((a, b) => b.coins - a.coins);
+        lb = lb.slice(0, 10);
+        localStorage.setItem('maboomCasinoLB', JSON.stringify(lb));
+        let html = '<h3>🏆 赌场排行榜 (总马币)</h3><table><tr><th>排名</th><th>玩家</th><th>马币</th></tr>';
+        lb.forEach((item, i) => html += `<tr><td>${i+1}</td><td>${item.name}</td><td>${item.coins}</td></tr>`);
+        html += '</table>';
+        document.getElementById('casino_leaderboard').innerHTML = html;
+      }
+    </script>
+  </div>
+
+  <!-- 马了个马跑酷 -->
+  <div id="runner" class="game-section">
+    <button class="back-btn" onclick="openGame('home')">返回大厅</button>
+    <style>
+      #runner { background: #87CEEB; overflow: hidden; position: relative; }
+      #runner_gameContainer { position: relative; width: 100vw; height: 100vh; }
+      #runner_ground { position: absolute; bottom: 0; width: 200%; height: 20px; background: #228B22; animation: moveGround 4s linear infinite; }
+      @keyframes moveGround { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+      #runner_horse { position: absolute; bottom: 20px; left: 50px; width: 80px; height: 80px; font-size: 60px; transition: bottom 0.5s; }
+      .runner_obstacle { position: absolute; bottom: 20px; right: 0; width: 40px; height: 60px; background: #8B4513; border-radius: 10px; animation: moveObstacle 3s linear infinite; }
+      @keyframes moveObstacle { from { right: 0; } to { right: 100%; } }
+      #runner_score { position: absolute; top: 20px; left: 20px; font-size: 24px; }
+      #runner_coins { position: absolute; top: 20px; right: 20px; font-size: 24px; }
+      #runner_menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; }
+      #runner_shop, #runner_leaderboard { margin: 20px; }
+    </style>
+    <div id="runner_gameContainer">
+      <div id="runner_score">距离: 0</div>
+      <div id="runner_coins">马币: 0</div>
+      <div id="runner_horse">🐎</div>
+      <div id="runner_ground"></div>
+    </div>
+
+    <div id="runner_menu">
+      <h1>马了个马 - MABOOM跑酷王</h1>
+      <p>点击屏幕让马跳跃，躲障碍赚马币！</p>
+      <button onclick="runner_startGame()">开始游戏</button>
+      <button onclick="runner_checkIn()">每日签到</button>
+      <button onclick="runner_openShop()">皮肤商店</button>
+      <button onclick="runner_showLeaderboard()">排行榜</button>
+      <div id="runner_shop" style="display:none;">
+        <p>选择皮肤（消耗马币）</p>
+        <div class="skin" onclick="runner_buySkin('🐎',0)">🐎 原版 (免费)</div>
+        <div class="skin" onclick="runner_buySkin('🦄',500)">🦄 独角兽 (500币)</div>
+        <div class="skin" onclick="runner_buySkin('🏇',1000)">🏇 赛马 (1000币)</div>
+        <div class="skin" onclick="runner_buySkin('🔴',1500)">🔴 红黑马 (1500币)</div>
+        <button onclick="runner_openShop(false)">关闭商店</button>
+      </div>
+      <div id="runner_leaderboard" style="display:none;"></div>
+    </div>
+
+    <script>
+      let runner_score = 0;
+      let runner_coins = parseInt(localStorage.getItem('maboomRunnerCoins') || '0');
+      let runner_currentSkin = localStorage.getItem('maboomRunnerSkin') || '🐎';
+      let runner_gameRunning = false;
+      let runner_horseElement = document.getElementById('runner_horse');
+      let runner_gameContainer = document.getElementById('runner_gameContainer');
+      let runner_menu = document.getElementById('runner_menu');
+      let runner_lastCheckIn = localStorage.getItem('maboomRunnerLastCheckIn');
+
+      document.getElementById('runner_coins').innerText = '马币: ' + runner_coins;
+      runner_horseElement.innerText = runner_currentSkin;
+
+      function runner_startGame() {
+        if (runner_gameRunning) return;
+        runner_gameRunning = true;
+        runner_menu.style.display = 'none';
+        runner_score = 0;
+        document.getElementById('runner_score').innerText = '距离: 0';
+        runner_createObstacle();
+        setInterval(() => {
+          if (runner_gameRunning) runner_score += 1;
+          document.getElementById('runner_score').innerText = '距离: ' + runner_score;
+        }, 100);
+      }
+
+      function runner_jump() {
+        if (!runner_gameRunning) return;
+        runner_horseElement.style.bottom = '120px';
+        setTimeout(() => runner_horseElement.style.bottom = '20px', 500);
+        Telegram.WebApp.HapticFeedback.impactOccurred('light');
+      }
+
+      function runner_createObstacle() {
+        if (!runner_gameRunning) return;
+        const obs = document.createElement('div');
+        obs.classList.add('runner_obstacle');
+        runner_gameContainer.appendChild(obs);
+        setTimeout(() => obs.remove(), 6000);
+        setTimeout(runner_createObstacle, Math.random() * 2000 + 2000);
+      }
+
+      function runner_checkCollision() {
+        if (!runner_gameRunning) return;
+        const horseRect = runner_horseElement.getBoundingClientRect();
+        document.querySelectorAll('.runner_obstacle').forEach(obs => {
+          const obsRect = obs.getBoundingClientRect();
+          if (horseRect.right > obsRect.left && horseRect.left < obsRect.right &&
+              horseRect.bottom > obsRect.top && horseRect.top < obsRect.bottom) {
+            runner_gameOver();
+          }
+        });
+      }
+
+      function runner_gameOver() {
+        runner_gameRunning = false;
+        runner_coins += Math.floor(runner_score / 10);
+        localStorage.setItem('maboomRunnerCoins', runner_coins);
+        document.getElementById('runner_coins').innerText = '马币: ' + runner_coins;
+        runner_submitScoreToLeaderboard(runner_score);
+        alert(`游戏结束！本次距离: ${runner_score}\n获得马币: ${Math.floor(runner_score / 10)}`);
+        runner_menu.style.display = 'flex';
+        runner_openShop(false);
+      }
+
+      function runner_checkIn() {
+        const today = new Date().toDateString();
+        if (runner_lastCheckIn !== today) {
+          runner_coins += 100;
+          localStorage.setItem('maboomRunnerCoins', runner_coins);
+          localStorage.setItem('maboomRunnerLastCheckIn', today);
+          document.getElementById('runner_coins').innerText = '马币: ' + runner_coins;
+          alert('签到成功！+100马币');
+        } else {
+          alert('今天已签到，明天再来！');
+        }
+      }
+
+      function runner_buySkin(skin, price) {
+        if (runner_coins >= price) {
+          runner_coins -= price;
+          runner_currentSkin = skin;
+          localStorage.setItem('maboomRunnerCoins', runner_coins);
+          localStorage.setItem('maboomRunnerSkin', skin);
+          document.getElementById('runner_coins').innerText = '马币: ' + runner_coins;
+          runner_horseElement.innerText = skin;
+          alert('购买成功！新皮肤已装备');
+        } else {
+          alert('马币不足！多玩几局赚币吧');
+        }
+      }
+
+      function runner_openShop(show = true) {
+        document.getElementById('runner_shop').style.display = show ? 'block' : 'none';
+      }
+
+      function runner_submitScoreToLeaderboard(score) {
+        let lb = JSON.parse(localStorage.getItem('maboomRunnerLB') || '[]');
+        const name = prompt('上排行榜输入名字:', '马王');
+        if (name) {
+          lb.push({ name, score });
+          lb.sort((a, b) => b.score - a.score);
+          lb = lb.slice(0, 10);
+          localStorage.setItem('maboomRunnerLB', JSON.stringify(lb));
+        }
+      }
+
+      function runner_showLeaderboard() {
+        const lb = JSON.parse(localStorage.getItem('maboomRunnerLB') || '[]');
+        let html = '<h3>🏆 排行榜 - 最远距离</h3><table><tr><th>排名</th><th>玩家</th><th>距离</th></tr>';
+        lb.forEach((item, i) => html += `<tr><td>${i+1}</td><td>${item.name}</td><td>${item.score}</td></tr>`);
+        html += '</table><button onclick="runner_menu.style.display=\'flex\';document.getElementById(\'runner_leaderboard\').style.display=\'none\';">返回</button>';
+        document.getElementById('runner_leaderboard').innerHTML = html;
+        document.getElementById('runner_leaderboard').style.display = 'block';
+      }
+
+      runner_gameContainer.addEventListener('click', runner_jump);
+      setInterval(runner_checkCollision, 50);
+    </script>
+  </div>
+
+  <!-- 农场谷 -->
+  <div id="farm" class="game-section">
+    <button class="back-btn" onclick="openGame('home')">返回大厅</button>
+    <style>
+      #farm { background: #90EE90; color: #333; }
+      #farm_coins { font-size: 26px; margin: 15px; }
+      #farm_farm { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 400px; margin: 20px auto; }
+      .farm_plot { width: 100px; height: 100px; background: #8B4513; border: 3px solid #654321; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 40px; position: relative; }
+      .farm_plot.growing { background: #228B22; color: white; }
+      .farm_plot.ready { background: #FFD700; color: #333; }
+      .farm_plot.locked { background: #A9A9A9; cursor: not-allowed; }
+      #farm button { background: #32CD32; }
+      #farm_shop { margin: 20px; }
+    </style>
+    <h1>🌾 MABOOM 农场谷</h1>
+    <p>种地收获赚马币，高分上排行榜领空投！</p>
+    <div id="farm_coins">马币: 1000</div>
+    <div id="farm_farm"></div>
+
+    <button onclick="farm_checkIn()">每日签到</button>
+    <button onclick="farm_openShop()">商店买种子/工具</button>
+    <button onclick="farm_showLeaderboard()">查看排行榜</button>
+
+    <div id="farm_shop" style="display:none;">
+      <h3>商店</h3>
+      <p>玉米种子: 50币 <button onclick="farm_buySeed('玉米', 50)">买</button></p>
+      <p>胡萝卜种子: 80币 <button onclick="farm_buySeed('胡萝卜', 80)">买</button></p>
+      <p>升级工具: 200币 <button onclick="farm_upgradeTool()">升级</button></p>
+      <button onclick="farm_openShop(false)">关闭</button>
+    </div>
+
+    <div id="farm_leaderboard" style="display:none;"></div>
+
+    <script>
+      let farm_coins = parseInt(localStorage.getItem('maboomFarmCoins') || '1000');
+      let farm_plots = JSON.parse(localStorage.getItem('maboomFarmPlots') || '[{"state":"empty"},{"state":"empty"},{"state":"empty"},{"state":"empty"},{"state":"empty"},{"state":"empty"},{"state":"empty"},{"state":"empty"},{"state":"empty"}]');
+      let farm_currentSeed = '玉米';
+      let farm_toolLevel = parseInt(localStorage.getItem('maboomToolLevel') || '1');
+      let farm_lastCheckIn = localStorage.getItem('maboomLastCheckIn');
+
+      document.getElementById('farm_coins').innerText = '马币: ' + farm_coins;
+      farm_renderFarm();
+
+      function farm_renderFarm() {
+        const farm = document.getElementById('farm_farm');
+        farm.innerHTML = '';
+        farm_plots.forEach((plot, i) => {
+          const div = document.createElement('div');
+          div.classList.add('farm_plot');
+          if (plot.state === 'growing') {
+            div.classList.add('growing');
+            div.innerText = '🌱';
+            div.onclick = () => alert('作物成长中...');
+          } else if (plot.state === 'ready') {
+            div.classList.add('ready');
+            div.innerText = plot.crop === '玉米' ? '🌽' : '🥕';
+            div.onclick = () => farm_harvest(i);
+          } else {
+            div.onclick = () => farm_plant(i);
+          }
+          farm.appendChild(div);
+        });
+      }
+
+      function farm_plant(index) {
+        if (farm_plots[index].state !== 'empty') return;
+        farm_plots[index].state = 'growing';
+        farm_plots[index].crop = farm_currentSeed;
+        farm_plots[index].time = Date.now() + 10000 / farm_toolLevel;
+        localStorage.setItem('maboomFarmPlots', JSON.stringify(farm_plots));
+        farm_renderFarm();
+        setTimeout(() => {
+          if (farm_plots[index] && farm_plots[index].time <= Date.now()) {
+            farm_plots[index].state = 'ready';
+            localStorage.setItem('maboomFarmPlots', JSON.stringify(farm_plots));
+            farm_renderFarm();
+          }
+        }, 10000 / farm_toolLevel);
+      }
+
+      function farm_harvest(index) {
+        if (farm_plots[index].state !== 'ready') return;
+        farm_coins += farm_plots[index].crop === '玉米' ? 200 : 300;
+        farm_updateCoins();
+        farm_plots[index].state = 'empty';
+        localStorage.setItem('maboomFarmPlots', JSON.stringify(farm_plots));
+        farm_renderFarm();
+        alert(`收获成功！+${farm_plots[index].crop === '玉米' ? 200 : 300}马币`);
+      }
+
+      function farm_checkIn() {
+        const today = new Date().toDateString();
+        if (farm_lastCheckIn !== today) {
+          farm_coins += 200;
+          farm_updateCoins();
+          localStorage.setItem('maboomLastCheckIn', today);
+          alert('签到成功！+200马币');
+        } else {
+          alert('今天已签到，明天再来！');
+        }
+      }
+
+      function farm_buySeed(crop, price) {
+        if (farm_coins >= price) {
+          farm_coins -= price;
+          farm_currentSeed = crop;
+          farm_updateCoins();
+          alert(`购买成功！当前种子: ${crop}`);
+        } else {
+          alert('马币不足！');
+        }
+      }
+
+      function farm_upgradeTool() {
+        const price = farm_toolLevel * 200;
+        if (farm_coins >= price) {
+          farm_coins -= price;
+          farm_toolLevel++;
+          localStorage.setItem('maboomToolLevel', farm_toolLevel);
+          farm_updateCoins();
+          alert(`工具升级到Lv.${farm_toolLevel}！收获更快`);
+        } else {
+          alert('马币不足！');
+        }
+      }
+
+      function farm_updateCoins() {
+        document.getElementById('farm_coins').innerText = '马币: ' + farm_coins;
+        localStorage.setItem('maboomFarmCoins', farm_coins);
+      }
+
+      function farm_submitScoreToLeaderboard() {
+        let lb = JSON.parse(localStorage.getItem('maboomFarmLB') || '[]');
+        const name = prompt('上排行榜输入名字:', '农场主');
+        if (name) {
+          lb.push({ name, coins: farm_coins });
+          lb.sort((a, b) => b.coins - a.coins);
+          lb = lb.slice(0, 10);
+          localStorage.setItem('maboomFarmLB', JSON.stringify(lb));
+        }
+      }
+
+      function farm_showLeaderboard() {
+        farm_submitScoreToLeaderboard();
+        const lb = JSON.parse(localStorage.getItem('maboomFarmLB') || '[]');
+        let html = '<h3>🏆 农场排行榜 (总马币)</h3><table><tr><th>排名</th><th>玩家</th><th>马币</th></tr>';
+        lb.forEach((item, i) => html += `<tr><td>${i+1}</td><td>${item.name}</td><td>${item.coins}</td></tr>`);
+        html += '</table>';
+        document.getElementById('farm_leaderboard').innerHTML = html;
+        document.getElementById('farm_leaderboard').style.display = 'block';
+      }
+
+      function farm_openShop(show = true) {
+        document.getElementById('farm_shop').style.display = show ? 'block' : 'none';
+      }
+    </script>
+  </div>
+
+  <script>
+    Telegram.WebApp.ready();
+    Telegram.WebApp.expand();
+
+    function openGame(id) {
+      document.querySelectorAll('.game-section').forEach(sec => sec.classList.remove('active'));
+      document.querySelectorAll('.tab-button').forEach(btn => btn.style.display = id === 'home' ? 'block' : 'none');
+      if (id !== 'home') {
+        document.getElementById(id).classList.add('active');
+      }
+    }
+
+    openGame('home');
+  </script>
+</body>
+</html>
