@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MABOOM Poker王者</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body { background: #1a1a2e; color: white; text-align: center; font-family: Arial; margin: 0; padding: 10px; }
+    h1 { font-size: 24px; margin: 10px; }
+    #game { margin: 20px; }
+    .card { display: inline-block; width: 60px; height: 80px; background: #fff; border: 2px solid #000; border-radius: 5px; margin: 2px; font-size: 20px; line-height: 80px; }
+    .hand { margin: 10px; }
+    #player-hand, #ai-hand { margin: 10px; }
+    #score { font-size: 28px; margin: 15px; }
+    button { padding: 12px 25px; margin: 10px; font-size: 18px; background: #e94560; border: none; border-radius: 10px; color: white; cursor: pointer; }
+    #leaderboard { margin: 20px; font-size: 16px; }
+    table { margin: 0 auto; border-collapse: collapse; }
+    th, td { padding: 8px; border: 1px solid #e94560; }
+  </style>
+</head>
+<body>
+  <h1>♠️ MABOOM Poker王者</h1>
+  <p>德州扑克单人对战AI，赢局赚币，高分领$MABOOM空投！</p>
+  <div id="score">币: 1000</div>
+  <div id="game">
+    <div id="player-hand" class="hand">你的手牌: </div>
+    <div id="community">公共牌: </div>
+    <div id="ai-hand" class="hand">AI手牌: [隐藏]</div>
+    <button onclick="startGame()">新游戏</button>
+    <button onclick="betAndDeal()">下注&发牌</button>
+    <button onclick="revealAndScore()">揭牌&结算</button>
+    <button onclick="submitScore()">提交分数上排行榜</button>
+  </div>
+  <div id="leaderboard"></div>
+
+  <script>
+    Telegram.WebApp.ready();
+    Telegram.WebApp.expand();
+
+    let coins = 1000;
+    let playerHand = [];
+    let aiHand = [];
+    let communityCards = [];
+    let suits = ['♠️', '♥️', '♦️', '♣️'];
+    let ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+
+    // 简单牌评估 (返回手牌强度分数, 更高更好)
+    function evaluateHand(hand) {
+      // 排序手牌
+      hand.sort((a, b) => ranks.indexOf(a.rank) - ranks.indexOf(b.rank));
+      // 检查同花顺、直 flush 等 (简化版)
+      let sameSuit = hand.every(card => card.suit === hand[0].suit);
+      let straight = hand.length === 5 && hand.every((card, i) => i === 0 || ranks.indexOf(card.rank) === ranks.indexOf(hand[i-1].rank) + 1);
+      if (sameSuit && straight) return 9; // 同花顺
+      let counts = {};
+      hand.forEach(card => counts[card.rank] = (counts[card.rank] || 0) + 1);
+      if (Object.values(counts).includes(4)) return 8; // 四条
+      if (Object.values(counts).includes(3) && Object.values(counts).includes(2)) return 7; // 葫芦
+      if (sameSuit) return 6; // 同花
+      if (straight) return 5; // 顺子
+      if (Object.values(counts).includes(3)) return 4; // 三条
+      if (Object.values(counts).filter(c => c === 2).length === 2) return 3; // 两对
+      if (Object.values(counts).includes(2)) return 2; // 一对
+      return 1; // 高牌
+    }
+
+    // 发牌
+    function dealCard() {
+      let suit = suits[Math.floor(Math.random() * 4)];
+      let rank = ranks[Math.floor(Math.random() * 13)];
+      return { suit, rank };
+    }
+
+    function startGame() {
+      coins = 1000; // 重置币
+      playerHand = [dealCard(), dealCard()];
+      aiHand = [dealCard(), dealCard()];
+      communityCards = [];
+      updateDisplay();
+      document.getElementById('score').innerText = '币: ' + coins;
+    }
+
+    function betAndDeal() {
+      if (coins < 100) { alert('币不够！'); return; }
+      coins -= 100; // 下注
+      communityCards = [dealCard(), dealCard(), dealCard()]; // 发3张公共牌
+      updateDisplay();
+      document.getElementById('score').innerText = '币: ' + coins;
+    }
+
+    function revealAndScore() {
+      // 发最后2张公共牌
+      communityCards.push(dealCard(), dealCard());
+      let playerFull = [...playerHand, ...communityCards];
+      let aiFull = [...aiHand, ...communityCards];
+      let playerScore = evaluateHand(playerFull.slice(0,5)); // 选最佳5张简化
+      let aiScore = evaluateHand(aiFull.slice(0,5));
+      let win = playerScore > aiScore ? 1 : (playerScore < aiScore ? -1 : 0);
+      if (win > 0) { coins += 300; alert('赢了！+300币'); } // 赢加币
+      else if (win < 0) { alert('输了！-100币'); coins -= 100; }
+      else { coins += 100; alert('平局！+100币'); }
+      updateDisplay(true); // 揭AI牌
+      document.getElementById('score').innerText = '币: ' + coins;
+    }
+
+    function updateDisplay(revealAI = false) {
+      let playerHtml = playerHand.map(c => `<span class="card">${c.rank}${c.suit}</span>`).join('');
+      document.getElementById('player-hand').innerHTML = '你的手牌: ' + playerHtml;
+      let communityHtml = communityCards.map(c => `<span class="card">${c.rank}${c.suit}</span>`).join('');
+      document.getElementById('community').innerHTML = '公共牌: ' + communityHtml;
+      let aiHtml = revealAI ? aiHand.map(c => `<span class="card">${c.rank}${c.suit}</span>`).join('') : '[隐藏]';
+      document.getElementById('ai-hand').innerHTML = 'AI手牌: ' + aiHtml;
+    }
+
+    // 排行榜 (本地, 后期接TON)
+    function submitScore() {
+      const name = prompt('输入名字上排行榜: ', '玩家');
+      if (name && coins > 0) {
+        let lb = JSON.parse(localStorage.getItem('maboomPokerLB') || '[]');
+        lb.push({ name, coins });
+        lb.sort((a, b) => b.coins - a.coins);
+        lb = lb.slice(0, 10);
+        localStorage.setItem('maboomPokerLB', JSON.stringify(lb));
+        alert('提交成功！你的币: ' + coins);
+        showLeaderboard();
+      }
+    }
+
+    function showLeaderboard() {
+      const lb = JSON.parse(localStorage.getItem('maboomPokerLB') || '[]');
+      let html = '<h3>🏆 排行榜 (币数)</h3><table><tr><th>排名</th><th>玩家</th><th>币</th></tr>';
+      lb.forEach((item, i) => html += `<tr><td>${i+1}</td><td>${item.name}</td><td>${item.coins}</td></tr>`);
+      html += '</table>';
+      document.getElementById('leaderboard').innerHTML = html;
+    }
+
+    // 初始化
+    startGame();
+  </script>
+</body>
+</html>
